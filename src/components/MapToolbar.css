@@ -1,0 +1,57 @@
+.map-toolbar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 500;
+  display: grid;
+  gap: 8px;
+  width: min(360px, calc(100% - 32px));
+}
+
+.layer-switch,
+.tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 14px;
+  background: rgba(255, 252, 247, 0.94);
+  box-shadow: 0 8px 24px rgba(20, 16, 10, 0.16);
+}
+
+.layer-switch button,
+.tool-actions button {
+  border: 0;
+  border-radius: 9px;
+  padding: 7px 10px;
+  background: transparent;
+  color: #3d3830;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.layer-switch button.is-active,
+.tool-actions button:hover,
+.layer-switch button:hover {
+  background: #1a1714;
+  color: #fff7e6;
+}
+
+.locate-error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fff1e8;
+  color: #8a2f12;
+  font-size: 12px;
+}
+
+@media (max-width: 860px) {
+  .map-toolbar {
+    top: auto;
+    bottom: 24px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+}
