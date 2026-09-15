@@ -12,38 +12,39 @@
 .tool-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 6px;
-  border-radius: 14px;
-  background: rgba(255, 252, 247, 0.94);
-  box-shadow: 0 8px 24px rgba(20, 16, 10, 0.16);
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--md-sys-shape-extra-large);
+  background: var(--md-sys-color-surface-container);
+  box-shadow: var(--md-sys-elevation-2);
 }
 
 .layer-switch button,
 .tool-actions button {
   border: 0;
-  border-radius: 9px;
-  padding: 7px 10px;
+  border-radius: var(--md-sys-shape-full);
+  min-height: 40px;
+  padding: 0 12px;
   background: transparent;
-  color: #3d3830;
-  font-size: 13px;
-  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
 }
 
 .layer-switch button.is-active,
 .tool-actions button:hover,
 .layer-switch button:hover {
-  background: #1a1714;
-  color: #fff7e6;
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
 }
 
 .locate-error {
   margin: 0;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: #fff1e8;
-  color: #8a2f12;
-  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: var(--md-sys-shape-medium);
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+  font-size: var(--md-sys-typescale-body-medium-size);
 }
 
 @media (max-width: 860px) {

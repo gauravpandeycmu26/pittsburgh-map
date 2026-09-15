@@ -2,87 +2,53 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: #141210;
-  color: #f6f0e4;
+  background: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
   overflow: hidden;
 }
 
 .sidebar-head {
-  padding: 28px 22px 16px;
+  padding: 28px 20px 16px;
 }
 
 .kicker {
   margin: 0 0 8px;
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-weight: var(--md-sys-typescale-label-medium-weight);
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: #d4a017;
+  color: var(--md-sys-color-primary);
 }
 
 .sidebar h2 {
   margin: 0 0 8px;
-  font-family: Fraunces, Georgia, serif;
-  font-size: 32px;
-  font-weight: 600;
-  line-height: 1.05;
+  font-size: var(--md-sys-typescale-headline-small-size);
+  font-weight: var(--md-sys-typescale-headline-small-weight);
 }
 
-.lede {
-  margin: 0 0 18px;
-  color: #cbbfaa;
-  font-size: 14px;
+.lede,
+.search-status {
+  margin: 0 0 16px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-medium-size);
   line-height: 1.45;
 }
 
-.search input {
-  width: 100%;
-  border: 1px solid #3a342c;
-  border-radius: 12px;
-  padding: 11px 12px;
-  background: #1d1a17;
-  color: #f6f0e4;
-  outline: none;
-}
-
-.search input:focus {
-  border-color: #d4a017;
+.search-status {
+  padding: 0 20px;
 }
 
 .filters {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 0 22px 16px;
-}
-
-.filters button {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid #3a342c;
-  border-radius: 999px;
-  padding: 6px 10px;
-  background: transparent;
-  color: #d8cbb6;
-  font-size: 12px;
-}
-
-.filters button i {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.filters button.is-on {
-  background: #f6f0e4;
-  border-color: #f6f0e4;
-  color: #141210;
+  padding: 0 20px 16px;
 }
 
 .results,
 .place-list {
   min-height: 0;
-  padding: 0 12px 20px;
+  padding: 0 8px 20px;
 }
 
 .place-list {
@@ -92,12 +58,12 @@
 
 .results h3,
 .place-list h3 {
-  margin: 0 10px 8px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  margin: 0 12px 8px;
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-weight: var(--md-sys-typescale-label-medium-weight);
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: #9d917c;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .results ul,
@@ -111,11 +77,11 @@
 .place-list button {
   width: 100%;
   display: grid;
-  gap: 3px;
+  gap: 4px;
   text-align: left;
   border: 0;
-  border-radius: 12px;
-  padding: 10px 12px;
+  border-radius: var(--md-sys-shape-large);
+  padding: 12px;
   background: transparent;
   color: inherit;
 }
@@ -123,27 +89,36 @@
 .results button:hover,
 .place-list button:hover,
 .place-list button.is-selected {
-  background: #24201c;
+  background: var(--md-sys-color-surface-container-highest);
 }
 
 .results strong,
 .place-list strong {
-  font-size: 15px;
+  font-size: var(--md-sys-typescale-title-medium-size);
+  font-weight: var(--md-sys-typescale-title-medium-weight);
 }
 
 .results span,
 .place-list span {
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: var(--md-sys-typescale-label-medium-size);
+  letter-spacing: 0.4px;
   text-transform: uppercase;
-  color: #d4a017;
+  color: var(--md-sys-color-primary);
 }
 
 .place-list em {
   font-style: normal;
-  font-size: 13px;
-  color: #b7aa96;
-  line-height: 1.4;
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.list-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--md-sys-color-on-surface-variant) !important;
 }
 
 .sr-only {
@@ -165,14 +140,14 @@
     inset: 0;
     z-index: 700;
     border: 0;
-    background: rgba(12, 10, 8, 0.45);
+    background: color-mix(in srgb, var(--md-sys-color-scrim) 40%, transparent);
   }
 
   .sidebar {
     position: fixed;
     inset: 0 auto 0 0;
     z-index: 800;
-    width: min(340px, 88vw);
+    width: min(360px, 88vw);
     transform: translateX(-105%);
     transition: transform 0.22s ease;
   }

@@ -1,5 +1,7 @@
 export const PITTSBURGH_CENTER = [40.4406, -79.9959];
 export const DEFAULT_ZOOM = 13;
+export const FOCUS_ZOOM = 16;
+export const LOCATE_ZOOM = 15;
 
 export const BASEMAPS = [
   {
@@ -265,3 +267,12 @@ export const places = [
     description: "Historic amusement park in West Mifflin, just outside the city.",
   },
 ];
+
+export const categoryById = Object.fromEntries(categories.map((category) => [category.id, category]));
+
+export const PHOTON_BBOX = [
+  PITTSBURGH_BOUNDS[0][1],
+  PITTSBURGH_BOUNDS[0][0],
+  PITTSBURGH_BOUNDS[1][1],
+  PITTSBURGH_BOUNDS[1][0],
+].join(",");

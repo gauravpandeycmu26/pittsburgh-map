@@ -12,14 +12,16 @@ body,
 }
 
 body {
-  font-family: Outfit, system-ui, sans-serif;
-  color: #1a1714;
-  background: #11100e;
+  font-family: Roboto, system-ui, sans-serif;
+  color: var(--md-sys-color-on-surface);
+  background: var(--md-sys-color-surface);
   -webkit-font-smoothing: antialiased;
 }
 
 button,
-input {
+input,
+textarea,
+select {
   font: inherit;
 }
 
@@ -28,18 +30,38 @@ button {
 }
 
 .leaflet-container {
-  font-family: Outfit, system-ui, sans-serif;
-  background: #cfd6cc;
+  font-family: Roboto, system-ui, sans-serif;
+  background: var(--md-sys-color-surface-container-high);
 }
 
 .leaflet-control-attribution {
   font-size: 11px !important;
-  background: rgba(255, 252, 247, 0.9) !important;
+  background: var(--md-sys-color-surface-container) !important;
+  color: var(--md-sys-color-on-surface-variant) !important;
+}
+
+.leaflet-bar {
+  border: 0 !important;
+  border-radius: var(--md-sys-shape-medium) !important;
+  overflow: hidden;
+  box-shadow: var(--md-sys-elevation-2) !important;
+}
+
+.leaflet-bar a {
+  background: var(--md-sys-color-surface-container) !important;
+  color: var(--md-sys-color-on-surface) !important;
+  border-bottom-color: var(--md-sys-color-outline-variant) !important;
 }
 
 .leaflet-popup-content-wrapper {
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(20, 16, 10, 0.22);
+  border-radius: var(--md-sys-shape-large);
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  box-shadow: var(--md-sys-elevation-2);
+}
+
+.leaflet-popup-tip {
+  background: var(--md-sys-color-surface-container-high);
 }
 
 .leaflet-popup-content {
@@ -49,26 +71,31 @@ button {
 
 .leaflet-popup-content h3 {
   margin: 0 0 6px;
-  font-family: Fraunces, Georgia, serif;
-  font-size: 17px;
-  font-weight: 600;
+  font-size: var(--md-sys-typescale-title-medium-size);
+  font-weight: var(--md-sys-typescale-title-medium-weight);
 }
 
 .leaflet-popup-content p {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--md-sys-typescale-body-medium-size);
   line-height: 1.45;
-  color: #4a453d;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .leaflet-popup-content .popup-cat {
   display: inline-block;
   margin-bottom: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-weight: var(--md-sys-typescale-label-medium-weight);
+  letter-spacing: 0.4px;
   text-transform: uppercase;
-  color: #8a6a1a;
+  color: var(--md-sys-color-primary);
+}
+
+.popup-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .place-marker {
@@ -84,14 +111,14 @@ button {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  border: 2px solid #fffaf2;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  border: 2px solid var(--md-sys-color-on-primary);
+  box-shadow: var(--md-sys-elevation-1);
 }
 
 .place-pin.is-active {
   width: 20px;
   height: 20px;
-  box-shadow: 0 0 0 6px rgba(212, 160, 23, 0.28), 0 2px 10px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--md-sys-color-primary) 28%, transparent);
 }
 
 .search-hit-marker {
@@ -105,7 +132,6 @@ button {
   height: 18px;
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
-  background: #1a1714;
-  border: 2px solid #f3d27a;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  background: var(--md-sys-color-primary);
+  border: 2px solid var(--md-sys-color-on-primary);
 }

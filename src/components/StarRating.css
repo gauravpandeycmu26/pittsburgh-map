@@ -1,0 +1,29 @@
+.star-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.star-rating button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--md-sys-shape-full);
+  background: transparent;
+  color: var(--md-sys-color-outline);
+}
+
+.star-rating button.is-on,
+.star-rating .is-filled {
+  color: var(--md-sys-color-primary);
+}
+
+.star-rating.is-readonly .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--md-sys-color-outline);
+}
+
+.star-rating.is-readonly .is-filled {
+  color: var(--md-sys-color-primary);
+}

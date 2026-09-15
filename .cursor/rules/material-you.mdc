@@ -1,0 +1,27 @@
+---
+description: Follow Material You (Material Design 3) for all UI work
+alwaysApply: true
+---
+
+# Material You
+
+Use Google Material Design 3 for every UI change. Do not invent a parallel visual language.
+
+- Tokens only: `var(--md-sys-color-*)`, `var(--md-sys-typescale-*)`, `var(--md-sys-shape-*)`. No one-off hex in components.
+- Type: Roboto. Icons: Material Symbols Outlined.
+- Shapes: 8 / 12 / 16 / 28px. Buttons 40dp. FAB 56dp. Text fields outlined.
+- Use MD3 patterns: navigation drawer, assist chips, tonal/filled/text buttons, FAB, side/bottom sheets, dialogs, cards.
+- Color comes from the Pittsburgh gold seed in `src/theme/material.css`. Do not revert to default MUI purple or the old custom gold/black theme.
+- Interactive states use on-surface opacity (8% hover, 12% focus), not new border colors.
+- Prefer existing components (`StarRating`, `ReviewForm`, sheets) over new one-off widgets.
+
+```css
+/* ❌ BAD */
+.card { background: #1a1714; border-radius: 5px; font-family: Outfit; }
+
+/* ✅ GOOD */
+.card {
+  background: var(--md-sys-color-surface-container);
+  border-radius: var(--md-sys-shape-large);
+}
+```

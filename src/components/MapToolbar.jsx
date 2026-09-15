@@ -1,11 +1,19 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMap } from "react-leaflet";
-import { BASEMAPS, DEFAULT_ZOOM, PITTSBURGH_CENTER } from "../data/places.js";
+import { BASEMAPS, DEFAULT_ZOOM, LOCATE_ZOOM, PITTSBURGH_CENTER } from "../data/places.js";
 import "./MapToolbar.css";
 
 export default function MapToolbar({ basemapId, onBasemapChange }) {
   const map = useMap();
   const [locateError, setLocateError] = useState("");
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   function resetView() {
     map.flyTo(PITTSBURGH_CENTER, DEFAULT_ZOOM, { duration: 0.8 });
@@ -19,11 +27,13 @@ export default function MapToolbar({ basemapId, onBasemapChange }) {
     }
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        map.flyTo([position.coords.latitude, position.coords.longitude], 15, {
+        if (!mountedRef.current) return;
+        map.flyTo([position.coords.latitude, position.coords.longitude], LOCATE_ZOOM, {
           duration: 0.8,
         });
       },
       () => {
+        if (!mountedRef.current) return;
         setLocateError("Could not read your location.");
       },
       { enableHighAccuracy: true, timeout: 8000 },

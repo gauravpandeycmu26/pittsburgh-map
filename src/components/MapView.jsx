@@ -9,18 +9,35 @@ import {
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
-import { BASEMAPS, categories, DEFAULT_ZOOM, PITTSBURGH_BOUNDS, PITTSBURGH_CENTER } from "../data/places.js";
+import {
+  BASEMAPS,
+  categoryById,
+  DEFAULT_ZOOM,
+  FOCUS_ZOOM,
+  PITTSBURGH_BOUNDS,
+  PITTSBURGH_CENTER,
+} from "../data/places.js";
 import "leaflet/dist/leaflet.css";
 import MapToolbar from "./MapToolbar.jsx";
+import StarRating from "./StarRating.jsx";
+
+const iconCache = new Map();
 
 function pinIcon(color, active) {
-  return L.divIcon({
-    className: "place-marker",
-    html: `<span class="place-pin${active ? " is-active" : ""}" style="background:${color}"></span>`,
-    iconSize: active ? [20, 20] : [16, 16],
-    iconAnchor: active ? [10, 10] : [8, 8],
-    popupAnchor: [0, -12],
-  });
+  const key = `${color}-${active}`;
+  if (!iconCache.has(key)) {
+    iconCache.set(
+      key,
+      L.divIcon({
+        className: "place-marker",
+        html: `<span class="place-pin${active ? " is-active" : ""}" style="background:${color}"></span>`,
+        iconSize: active ? [20, 20] : [16, 16],
+        iconAnchor: active ? [10, 10] : [8, 8],
+        popupAnchor: [0, -12],
+      }),
+    );
+  }
+  return iconCache.get(key);
 }
 
 const searchIcon = L.divIcon({
@@ -31,10 +48,9 @@ const searchIcon = L.divIcon({
   popupAnchor: [0, -18],
 });
 
-function PlaceMarker({ place, selected, onSelect }) {
+function PlaceMarker({ place, selected, rating, onSelect }) {
   const markerRef = useRef(null);
-  const color =
-    categories.find((category) => category.id === place.category)?.color ?? "#d4a017";
+  const color = categoryById[place.category]?.color ?? "#e9c349";
 
   useEffect(() => {
     if (!selected) return;
@@ -51,7 +67,14 @@ function PlaceMarker({ place, selected, onSelect }) {
       <Popup>
         <span className="popup-cat">{place.category}</span>
         <h3>{place.name}</h3>
-        <p>{place.description}</p>
+        {rating?.count ? (
+          <p className="popup-rating">
+            <StarRating value={rating.average} readOnly label={`${place.name} rating`} />
+            {rating.average.toFixed(1)} · {rating.count} review{rating.count === 1 ? "" : "s"}
+          </p>
+        ) : (
+          <p>No reviews yet</p>
+        )}
       </Popup>
     </Marker>
   );
@@ -62,18 +85,44 @@ function FlyTo({ target }) {
 
   useEffect(() => {
     if (!target) return;
-    map.flyTo([target.lat, target.lng], target.zoom ?? 16, { duration: 0.85 });
+    map.flyTo([target.lat, target.lng], target.zoom ?? FOCUS_ZOOM, { duration: 0.85 });
   }, [map, target]);
+
+  return null;
+}
+
+function MapSync({ sheetOpen, onCenterChange }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const sync = () => {
+      const center = map.getCenter();
+      onCenterChange({ lat: center.lat, lng: center.lng });
+    };
+    sync();
+    map.on("moveend", sync);
+    return () => {
+      map.off("moveend", sync);
+    };
+  }, [map, onCenterChange]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => map.invalidateSize(), 220);
+    return () => clearTimeout(timer);
+  }, [map, sheetOpen]);
 
   return null;
 }
 
 export default function MapView({
   places,
+  ratings,
   selectedId,
   onSelectPlace,
   focusTarget,
   searchHit,
+  sheetOpen,
+  onCenterChange,
 }) {
   const [basemapId, setBasemapId] = useState("streets");
   const basemap = BASEMAPS.find((layer) => layer.id === basemapId) ?? BASEMAPS[0];
@@ -86,24 +135,14 @@ export default function MapView({
       maxZoom={19}
       maxBounds={PITTSBURGH_BOUNDS}
       maxBoundsViscosity={0.7}
-      scrollWheelZoom
-      doubleClickZoom
-      dragging
-      touchZoom
-      keyboard
       zoomControl={false}
       style={{ height: "100%", width: "100%" }}
     >
-      <TileLayer
-        key={basemap.id}
-        attribution={basemap.attr}
-        url={basemap.url}
-        subdomains="abc"
-        maxZoom={19}
-      />
+      <TileLayer key={basemap.id} attribution={basemap.attr} url={basemap.url} subdomains="abc" maxZoom={19} />
       <ZoomControl position="bottomright" />
       <ScaleControl position="bottomleft" imperial metric />
       <FlyTo target={focusTarget} />
+      <MapSync sheetOpen={sheetOpen} onCenterChange={onCenterChange} />
       <MapToolbar basemapId={basemapId} onBasemapChange={setBasemapId} />
 
       {places.map((place) => (
@@ -111,6 +150,7 @@ export default function MapView({
           key={place.id}
           place={place}
           selected={place.id === selectedId}
+          rating={ratings[place.id]}
           onSelect={onSelectPlace}
         />
       ))}
@@ -118,9 +158,9 @@ export default function MapView({
       {searchHit ? (
         <Marker position={[searchHit.lat, searchHit.lng]} icon={searchIcon}>
           <Popup>
-            <span className="popup-cat">Search</span>
+            <span className="popup-cat">New place</span>
             <h3>{searchHit.name}</h3>
-            {searchHit.detail ? <p>{searchHit.detail}</p> : null}
+            <p>No reviews yet. Add this location to write the first one.</p>
           </Popup>
         </Marker>
       ) : null}
