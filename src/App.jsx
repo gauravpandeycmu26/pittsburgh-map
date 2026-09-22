@@ -1,210 +1,236 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import AccountBar from "./components/AccountBar.jsx";
 import AddLocationDialog from "./components/AddLocationDialog.jsx";
+import AuthDialog from "./components/AuthDialog.jsx";
 import MapView from "./components/MapView.jsx";
 import PlaceDetails from "./components/PlaceDetails.jsx";
 import Sidebar from "./components/Sidebar.jsx";
-import { categories, FOCUS_ZOOM, places as catalogPlaces } from "./data/places.js";
-import { findExistingPlace, nextFocus } from "./lib/geo.js";
-import { averageRating, createId, loadStore, reviewsFor, saveStore } from "./lib/storage.js";
+import { categories } from "./data/places.js";
+import { useAccessStore } from "./hooks/useAccessStore.js";
+import { useAuth } from "./hooks/useAuth.js";
+import { useMapUi } from "./hooks/useMapUi.js";
+import { toggleCategorySet } from "./lib/categories.js";
+import { filterPlaces, resolveSearchHit } from "./lib/search.js";
 import "./App.css";
 
-const initialStore = loadStore();
-
 export default function App() {
+  const { user, error: authError, busy, signup, login, guest, logout, setError: setAuthError } = useAuth();
+  const store = useAccessStore();
+  const ui = useMapUi();
+  const centerRef = useRef(null);
   const [query, setQuery] = useState("");
   const [activeCategories, setActiveCategories] = useState(
     () => new Set(categories.map((category) => category.id)),
   );
-  const [customPlaces, setCustomPlaces] = useState(initialStore.customPlaces);
-  const [userReviews, setUserReviews] = useState(initialStore.userReviews);
-  const [selection, setSelection] = useState(null);
-  const [focusTarget, setFocusTarget] = useState(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
-  const [addPrefill, setAddPrefill] = useState(null);
-  const [mapCenter, setMapCenter] = useState(null);
+  const [formError, setFormError] = useState("");
 
-  const allPlaces = useMemo(() => [...catalogPlaces, ...customPlaces], [customPlaces]);
+  const visiblePlaces = useMemo(
+    () => filterPlaces(store.places, query, activeCategories),
+    [activeCategories, query, store.places],
+  );
 
-  const visiblePlaces = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return allPlaces.filter((place) => {
-      if (!activeCategories.has(place.category)) return false;
-      if (!needle) return true;
-      const haystack = [place.name, place.category, place.description, ...(place.aliases ?? [])]
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(needle);
+  const selectedPlaceId = ui.selection?.kind === "place" ? ui.selection.place.id : null;
+  const selectedReviews = selectedPlaceId ? (store.reviewsByPlace[selectedPlaceId] ?? []) : [];
+
+  useEffect(() => {
+    if (!selectedPlaceId) return undefined;
+    let alive = true;
+    store.loadReviews(selectedPlaceId).catch(() => {
+      if (alive) setFormError("Could not load access notes.");
     });
-  }, [activeCategories, allPlaces, query]);
-
-  const selectedReviews = selection?.kind === "place" ? reviewsFor(selection.place.id, userReviews) : [];
-
-  function persist(nextCustom, nextReviews) {
-    saveStore({ customPlaces: nextCustom, userReviews: nextReviews });
-  }
+    return () => {
+      alive = false;
+    };
+  }, [selectedPlaceId, store.loadReviews]);
 
   function toggleCategory(id) {
-    setActiveCategories((current) => {
-      const next = new Set(current);
-      if (next.has(id)) {
-        if (next.size === 1) return current;
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+    setActiveCategories((current) => toggleCategorySet(current, id));
   }
 
   function selectPlace(place) {
-    setSelection({ kind: "place", place });
-    setFocusTarget(nextFocus(place.lat, place.lng, FOCUS_ZOOM));
-    setMenuOpen(false);
+    if (ui.picking) return;
+    ui.selectPlace(place);
   }
 
-  function handleSearchSelect(hit) {
-    const existing = findExistingPlace(hit, allPlaces);
-    if (existing) {
-      selectPlace(existing);
+  function onSearchSelect(hit) {
+    if (ui.picking) return;
+    const resolved = resolveSearchHit(hit, store.places);
+    if (resolved.kind === "place") {
+      ui.selectPlace(resolved.place);
       return;
     }
-    setSelection({
-      kind: "prospect",
-      place: {
-        name: hit.name,
-        category: "Landmarks",
-        description: hit.detail,
-        lat: hit.lat,
-        lng: hit.lng,
-      },
-    });
-    setFocusTarget(nextFocus(hit.lat, hit.lng, FOCUS_ZOOM));
-    setMenuOpen(false);
+    ui.selectProspect(resolved.place);
   }
 
-  function addReview(draft) {
-    if (selection?.kind !== "place") return;
-    const placeId = selection.place.id;
-    const review = {
-      id: createId("review"),
-      author: draft.author,
-      rating: draft.rating,
-      text: draft.text,
-      createdAt: Date.now(),
-    };
-    const nextReviews = {
-      ...userReviews,
-      [placeId]: [...(userReviews[placeId] ?? []), review],
-    };
-    setUserReviews(nextReviews);
-    persist(customPlaces, nextReviews);
-  }
-
-  function openAddLocation(prefill = null) {
-    setAddPrefill(prefill);
-    setAddOpen(true);
-  }
-
-  function saveLocation(draft) {
-    const place = {
-      id: createId("place"),
-      name: draft.name,
-      category: draft.category,
-      description: draft.description,
-      lat: draft.lat,
-      lng: draft.lng,
-      custom: true,
-    };
-    const nextCustom = [...customPlaces, place];
-    setCustomPlaces(nextCustom);
-    persist(nextCustom, userReviews);
-    setAddOpen(false);
-    setAddPrefill(null);
-    selectPlace(place);
-  }
-
-  const ratings = useMemo(() => {
-    const map = {};
-    for (const place of allPlaces) {
-      const list = reviewsFor(place.id, userReviews);
-      map[place.id] = { count: list.length, average: averageRating(list) };
+  async function handleAddReview(draft) {
+    if (!selectedPlaceId) return;
+    try {
+      await store.addReview(selectedPlaceId, draft);
+      setFormError("");
+    } catch (error) {
+      setFormError(error.message);
     }
-    return map;
-  }, [allPlaces, userReviews]);
+  }
+
+  async function handleDeleteReview(reviewId) {
+    if (!selectedPlaceId) return;
+    try {
+      await store.removeReview(selectedPlaceId, reviewId);
+    } catch (error) {
+      setFormError(error.message);
+    }
+  }
+
+  function requireAuth(next = "login") {
+    ui.setAuthOpen(next);
+  }
+
+  function handleOpenAdd(prefill = null) {
+    if (!user) {
+      requireAuth("signup");
+      return;
+    }
+    const center = centerRef.current?.();
+    ui.openAddLocation(prefill ?? (center ? { lat: center.lat, lng: center.lng, coordsSource: "center" } : null));
+  }
+
+  async function handleSaveLocation(draft) {
+    try {
+      const place = await store.addPlace(draft);
+      ui.closeAdd();
+      ui.selectPlace(place);
+      setFormError("");
+    } catch (error) {
+      setFormError(error.message);
+    }
+  }
 
   return (
-    <div className={`app${selection ? " has-sheet" : ""}`}>
+    <div className={`app${ui.selection ? " has-sheet" : ""}`}>
       <Sidebar
         query={query}
         onQueryChange={setQuery}
         activeCategories={activeCategories}
         onToggleCategory={toggleCategory}
         places={visiblePlaces}
-        ratings={ratings}
-        selectedId={selection?.kind === "place" ? selection.place.id : null}
+        ratings={store.ratings}
+        selectedId={selectedPlaceId}
         onSelectPlace={selectPlace}
-        onSearchSelect={handleSearchSelect}
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
+        onSearchSelect={onSearchSelect}
+        open={ui.menuOpen}
+        onClose={() => ui.setMenuOpen(false)}
       />
 
-      <main className="map-shell">
+      <main className={`map-shell${ui.picking ? " is-picking" : ""}`}>
         <header className="top-bar">
           <button
             className="md-fab menu-btn"
             type="button"
             aria-label="Open places list"
-            onClick={() => setMenuOpen(true)}
+            onClick={() => ui.setMenuOpen(true)}
           >
             <span className="material-symbols-outlined">menu</span>
           </button>
           <div className="brand">
-            <span className="material-symbols-outlined brand-icon">map</span>
+            <span className="material-symbols-outlined brand-icon">accessible</span>
             <div>
-              <p>City of Bridges</p>
-              <h1>Pittsburgh Map</h1>
+              <p>Access first</p>
+              <h1>Pittsburgh Access Map</h1>
             </div>
           </div>
+          <AccountBar
+            user={user}
+            onLogin={() => requireAuth("login")}
+            onSignup={() => requireAuth("signup")}
+            onGuest={async () => {
+              await guest();
+            }}
+            onLogout={logout}
+          />
         </header>
+
+        {store.status === "error" || formError ? (
+          <p className="api-banner" role="alert">
+            {formError || store.error}
+          </p>
+        ) : null}
+
+        {ui.picking ? (
+          <div className="pick-banner" role="status">
+            <span className="material-symbols-outlined" aria-hidden="true">
+              add_location_alt
+            </span>
+            <p>Tap the map to place this landmark</p>
+            <button className="md-text-btn" type="button" onClick={ui.cancelMapPick}>
+              Cancel
+            </button>
+          </div>
+        ) : null}
 
         <MapView
           places={visiblePlaces}
-          ratings={ratings}
-          selectedId={selection?.kind === "place" ? selection.place.id : null}
+          ratings={store.ratings}
+          selectedId={selectedPlaceId}
           onSelectPlace={selectPlace}
-          focusTarget={focusTarget}
-          searchHit={selection?.kind === "prospect" ? selection.place : null}
-          sheetOpen={Boolean(selection)}
-          onCenterChange={setMapCenter}
+          focusTarget={ui.focusTarget}
+          searchHit={ui.selection?.kind === "prospect" ? ui.selection.place : null}
+          sheetOpen={Boolean(ui.selection)}
+          centerRef={centerRef}
+          picking={ui.picking}
+          draftPin={ui.draftPin}
+          onPick={ui.finishMapPick}
         />
 
-        <button
-          className="md-fab add-fab"
-          type="button"
-          aria-label="Add a location"
-          onClick={() => openAddLocation(null)}
-        >
-          <span className="material-symbols-outlined">add_location_alt</span>
-        </button>
+        {ui.picking ? null : (
+          <button
+            className="md-fab add-fab"
+            type="button"
+            aria-label="Add a landmark"
+            onClick={() => handleOpenAdd(null)}
+          >
+            <span className="material-symbols-outlined">add_location_alt</span>
+          </button>
+        )}
       </main>
 
-      {selection ? (
+      {ui.selection && !ui.picking ? (
         <PlaceDetails
-          selection={selection}
+          selection={ui.selection}
           reviews={selectedReviews}
-          onClose={() => setSelection(null)}
-          onAddReview={addReview}
-          onAddLocation={(place) => openAddLocation(place)}
+          user={user}
+          onClose={() => ui.setSelection(null)}
+          onAddReview={handleAddReview}
+          onAddLocation={(place) => handleOpenAdd(place)}
+          onNeedAuth={() => requireAuth("login")}
+          onGuest={async () => {
+            await guest();
+          }}
+          onDeleteReview={handleDeleteReview}
         />
       ) : null}
 
       <AddLocationDialog
-        open={addOpen}
-        prefill={addPrefill}
-        mapCenter={mapCenter}
-        onClose={() => setAddOpen(false)}
-        onSave={saveLocation}
+        open={ui.addOpen}
+        prefill={ui.addPrefill}
+        mapCenter={centerRef.current?.() ?? null}
+        onClose={ui.closeAdd}
+        onSave={handleSaveLocation}
+        onPickOnMap={ui.startMapPick}
+      />
+
+      <AuthDialog
+        open={Boolean(ui.authOpen)}
+        mode={ui.authOpen === "signup" ? "signup" : "login"}
+        busy={busy}
+        error={authError}
+        onClose={() => {
+          ui.setAuthOpen(null);
+          setAuthError("");
+        }}
+        onLogin={login}
+        onSignup={signup}
+        onGuest={guest}
+        onModeChange={ui.setAuthOpen}
       />
     </div>
   );

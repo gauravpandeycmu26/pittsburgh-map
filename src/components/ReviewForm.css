@@ -9,6 +9,21 @@
   font-weight: var(--md-sys-typescale-title-medium-weight);
 }
 
+.review-as {
+  margin: 0;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-medium-size);
+}
+
+.rating-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+}
+
 .form-error {
   margin: 0;
   color: var(--md-sys-color-error);

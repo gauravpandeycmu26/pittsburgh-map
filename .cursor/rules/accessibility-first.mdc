@@ -1,0 +1,22 @@
+---
+description: Pittsburgh Access Map is about how usable a place is, not tourism
+alwaysApply: true
+---
+
+# Accessibility first
+
+This app helps people judge how usable a Pittsburgh place is: walking, wheelchair access, ramps, hills, restrooms, and similar barriers. Reviews support that. They are not the product.
+
+- Lead UI with access facts (walk, wheelchair, ramps). Ratings and write-ups should describe access, not only vibe.
+- New landmarks need a map-picked point and access fields (walk, wheelchair, ramps).
+- Do not add tourist-only features that hide access information.
+- Prefer concrete access language: "step-free," "steep curb," "ramp at the side door."
+
+```jsx
+// ❌ BAD
+<p>{place.description}</p>
+
+// ✅ GOOD
+<AccessFacts access={accessibilityFor(place)} />
+<p>{place.accessibility.notes}</p>
+```

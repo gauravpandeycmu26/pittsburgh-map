@@ -1,5 +1,6 @@
 import { categories } from "../data/places.js";
 import { usePhotonSearch } from "../hooks/usePhotonSearch.js";
+import AccessFacts from "./AccessFacts.jsx";
 import StarRating from "./StarRating.jsx";
 import "./Sidebar.css";
 
@@ -23,9 +24,9 @@ export default function Sidebar({
       {open ? <button className="sidebar-backdrop" type="button" onClick={onClose} /> : null}
       <aside className={`sidebar${open ? " is-open" : ""}`}>
         <div className="sidebar-head">
-          <p className="kicker">OpenStreetMap</p>
-          <h2>Explore Pittsburgh</h2>
-          <p className="lede">Search a place, read reviews, or add a location that is missing.</p>
+          <p className="kicker">Access map</p>
+          <h2>How usable is it?</h2>
+          <p className="lede">Walking, wheelchair, ramps, and hills — plus notes from people who have been there.</p>
           <label className="md-field">
             <span className="sr-only">Search places</span>
             <input
@@ -86,13 +87,14 @@ export default function Sidebar({
                   >
                     <strong>{place.name}</strong>
                     <span>{place.category}</span>
+                    <AccessFacts place={place} compact />
                     {score?.count ? (
                       <span className="list-rating">
-                        <StarRating value={score.average} readOnly label={`${place.name} rating`} />
+                        <StarRating value={score.average} readOnly label={`${place.name} access rating`} />
                         {score.average.toFixed(1)}
                       </span>
                     ) : (
-                      <em>No reviews yet</em>
+                      <em>No access notes yet</em>
                     )}
                   </button>
                 </li>

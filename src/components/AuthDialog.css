@@ -1,0 +1,8 @@
+.auth-card {
+  width: min(420px, 100%);
+}
+
+.auth-switch {
+  justify-self: start;
+  padding-inline: 0;
+}

@@ -51,6 +51,13 @@
   font-size: var(--md-sys-typescale-body-medium-size);
 }
 
+.sheet-access-avgs,
+.review-access {
+  margin: 8px 0 0;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-large-size);
+}
+
 .empty-card,
 .review-card,
 .review-form {
@@ -80,6 +87,13 @@
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-sys-typescale-body-medium-size);
   line-height: 1.45;
+}
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
 }
 
 .review-list {

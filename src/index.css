@@ -34,6 +34,11 @@ button {
   background: var(--md-sys-color-surface-container-high);
 }
 
+.leaflet-container.is-picking,
+.map-shell.is-picking .leaflet-container {
+  cursor: crosshair;
+}
+
 .leaflet-control-attribution {
   font-size: 11px !important;
   background: var(--md-sys-color-surface-container) !important;
@@ -98,6 +103,10 @@ button {
   gap: 6px;
 }
 
+.popup-access {
+  margin-bottom: 8px !important;
+}
+
 .place-marker {
   display: flex;
   align-items: center;
@@ -126,7 +135,8 @@ button {
   border: none;
 }
 
-.search-hit-pin {
+.search-hit-pin,
+.draft-pin {
   display: block;
   width: 18px;
   height: 18px;
@@ -134,4 +144,11 @@ button {
   transform: rotate(-45deg);
   background: var(--md-sys-color-primary);
   border: 2px solid var(--md-sys-color-on-primary);
+}
+
+.draft-pin {
+  width: 20px;
+  height: 20px;
+  background: var(--md-sys-color-tertiary);
+  border-color: var(--md-sys-color-on-tertiary);
 }

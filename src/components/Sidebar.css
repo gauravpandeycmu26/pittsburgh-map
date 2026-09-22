@@ -112,7 +112,8 @@
   color: var(--md-sys-color-on-surface-variant);
 }
 
-.list-rating {
+.list-rating,
+.access-summary {
   display: flex;
   align-items: center;
   gap: 6px;

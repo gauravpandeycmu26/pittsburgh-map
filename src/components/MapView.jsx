@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import {
   MapContainer,
   Marker,
   Popup,
   ScaleControl,
   TileLayer,
-  ZoomControl,
   useMap,
+  useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
 import {
@@ -17,20 +17,24 @@ import {
   PITTSBURGH_BOUNDS,
   PITTSBURGH_CENTER,
 } from "../data/places.js";
+import { accessSummary, accessibilityFor } from "../data/accessibility.js";
+import { safeCssColor } from "../lib/sanitize.js";
 import "leaflet/dist/leaflet.css";
 import MapToolbar from "./MapToolbar.jsx";
+import SmoothZoom from "./SmoothZoom.jsx";
 import StarRating from "./StarRating.jsx";
 
 const iconCache = new Map();
 
 function pinIcon(color, active) {
-  const key = `${color}-${active}`;
+  const safe = safeCssColor(color);
+  const key = `${safe}-${active}`;
   if (!iconCache.has(key)) {
     iconCache.set(
       key,
       L.divIcon({
         className: "place-marker",
-        html: `<span class="place-pin${active ? " is-active" : ""}" style="background:${color}"></span>`,
+        html: `<span class="place-pin${active ? " is-active" : ""}" style="background:${safe}"></span>`,
         iconSize: active ? [20, 20] : [16, 16],
         iconAnchor: active ? [10, 10] : [8, 8],
         popupAnchor: [0, -12],
@@ -48,69 +52,100 @@ const searchIcon = L.divIcon({
   popupAnchor: [0, -18],
 });
 
-function PlaceMarker({ place, selected, rating, onSelect }) {
+const draftIcon = L.divIcon({
+  className: "search-hit-marker",
+  html: '<span class="draft-pin"></span>',
+  iconSize: [22, 22],
+  iconAnchor: [11, 22],
+  popupAnchor: [0, -22],
+});
+
+const PlaceMarker = memo(function PlaceMarker({ place, selected, rating, onSelect, picking }) {
   const markerRef = useRef(null);
   const color = categoryById[place.category]?.color ?? "#e9c349";
+  const access = accessibilityFor(place);
 
   useEffect(() => {
-    if (!selected) return;
+    if (!selected || picking) return;
     markerRef.current?.openPopup();
-  }, [selected]);
+  }, [picking, selected]);
 
   return (
     <Marker
       ref={markerRef}
       position={[place.lat, place.lng]}
       icon={pinIcon(color, selected)}
-      eventHandlers={{ click: () => onSelect(place) }}
+      eventHandlers={{ click: () => { if (!picking) onSelect(place); } }}
     >
       <Popup>
         <span className="popup-cat">{place.category}</span>
         <h3>{place.name}</h3>
+        <p className="popup-access">{accessSummary(access)}</p>
         {rating?.count ? (
           <p className="popup-rating">
-            <StarRating value={rating.average} readOnly label={`${place.name} rating`} />
-            {rating.average.toFixed(1)} · {rating.count} review{rating.count === 1 ? "" : "s"}
+            <StarRating value={rating.average} readOnly label={`${place.name} access rating`} />
+            {rating.average.toFixed(1)} · {rating.count} note{rating.count === 1 ? "" : "s"}
           </p>
         ) : (
-          <p>No reviews yet</p>
+          <p>No access notes yet</p>
         )}
       </Popup>
     </Marker>
   );
-}
+});
 
 function FlyTo({ target }) {
   const map = useMap();
 
   useEffect(() => {
     if (!target) return;
-    map.flyTo([target.lat, target.lng], target.zoom ?? FOCUS_ZOOM, { duration: 0.85 });
+    const timer = setTimeout(() => {
+      map.flyTo([target.lat, target.lng], target.zoom ?? FOCUS_ZOOM, {
+        duration: 1.05,
+        easeLinearity: 0.2,
+      });
+    }, 40);
+    return () => clearTimeout(timer);
   }, [map, target]);
 
   return null;
 }
 
-function MapSync({ sheetOpen, onCenterChange }) {
+function MapCenterRef({ centerRef }) {
   const map = useMap();
 
   useEffect(() => {
-    const sync = () => {
+    if (!centerRef) return undefined;
+    centerRef.current = () => {
       const center = map.getCenter();
-      onCenterChange({ lat: center.lat, lng: center.lng });
+      return { lat: center.lat, lng: center.lng };
     };
-    sync();
-    map.on("moveend", sync);
     return () => {
-      map.off("moveend", sync);
+      centerRef.current = null;
     };
-  }, [map, onCenterChange]);
+  }, [centerRef, map]);
+
+  return null;
+}
+
+function MapResize({ sheetOpen }) {
+  const map = useMap();
 
   useEffect(() => {
-    const timer = setTimeout(() => map.invalidateSize(), 220);
+    const timer = setTimeout(() => map.invalidateSize({ animate: false }), 280);
     return () => clearTimeout(timer);
   }, [map, sheetOpen]);
 
+  return null;
+}
+
+function MapClickHandler({ enabled, onPick }) {
+  useMapEvents({
+    click(event) {
+      if (!enabled) return;
+      onPick({ lat: event.latlng.lat, lng: event.latlng.lng });
+    },
+  });
   return null;
 }
 
@@ -122,28 +157,40 @@ export default function MapView({
   focusTarget,
   searchHit,
   sheetOpen,
-  onCenterChange,
+  centerRef,
+  picking = false,
+  draftPin = null,
+  onPick,
 }) {
   const [basemapId, setBasemapId] = useState("streets");
   const basemap = BASEMAPS.find((layer) => layer.id === basemapId) ?? BASEMAPS[0];
 
   return (
     <MapContainer
+      className={picking ? "is-picking" : undefined}
       center={PITTSBURGH_CENTER}
       zoom={DEFAULT_ZOOM}
       minZoom={11}
       maxZoom={19}
+      zoomSnap={0.25}
+      zoomDelta={0.5}
+      wheelPxPerZoomLevel={140}
+      zoomAnimation
+      fadeAnimation
+      markerZoomAnimation
       maxBounds={PITTSBURGH_BOUNDS}
       maxBoundsViscosity={0.7}
       zoomControl={false}
       style={{ height: "100%", width: "100%" }}
     >
       <TileLayer key={basemap.id} attribution={basemap.attr} url={basemap.url} subdomains="abc" maxZoom={19} />
-      <ZoomControl position="bottomright" />
       <ScaleControl position="bottomleft" imperial metric />
       <FlyTo target={focusTarget} />
-      <MapSync sheetOpen={sheetOpen} onCenterChange={onCenterChange} />
+      <MapCenterRef centerRef={centerRef} />
+      <MapResize sheetOpen={sheetOpen} />
+      <MapClickHandler enabled={picking} onPick={onPick} />
       <MapToolbar basemapId={basemapId} onBasemapChange={setBasemapId} />
+      <SmoothZoom />
 
       {places.map((place) => (
         <PlaceMarker
@@ -152,15 +199,26 @@ export default function MapView({
           selected={place.id === selectedId}
           rating={ratings[place.id]}
           onSelect={onSelectPlace}
+          picking={picking}
         />
       ))}
 
       {searchHit ? (
         <Marker position={[searchHit.lat, searchHit.lng]} icon={searchIcon}>
           <Popup>
-            <span className="popup-cat">New place</span>
+            <span className="popup-cat">New landmark</span>
             <h3>{searchHit.name}</h3>
-            <p>No reviews yet. Add this location to write the first one.</p>
+            <p>Not saved yet. Add it to share walking and wheelchair notes.</p>
+          </Popup>
+        </Marker>
+      ) : null}
+
+      {draftPin ? (
+        <Marker position={[draftPin.lat, draftPin.lng]} icon={draftIcon}>
+          <Popup>
+            <span className="popup-cat">New pin</span>
+            <h3>Landmark location</h3>
+            <p>This is where the new landmark will be saved.</p>
           </Popup>
         </Marker>
       ) : null}

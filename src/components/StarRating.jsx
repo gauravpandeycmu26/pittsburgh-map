@@ -28,7 +28,7 @@ export default function StarRating({
             key={star}
             type="button"
             className={filled ? "is-on" : ""}
-            aria-label={`${star} star${star === 1 ? "" : "s"}`}
+            aria-label={`${label} ${star} star${star === 1 ? "" : "s"}`}
             aria-pressed={value === star}
             onClick={() => onChange(star)}
           >
