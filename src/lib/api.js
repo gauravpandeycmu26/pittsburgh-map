@@ -12,7 +12,9 @@ async function request(path, options = {}) {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.error || "Request failed");
+    const error = new Error(data.error || "Request failed");
+    error.status = response.status;
+    throw error;
   }
   return data;
 }
@@ -21,6 +23,7 @@ export const api = {
   me: () => request("/api/auth/me"),
   signup: (body) => request("/api/auth/signup", { method: "POST", body: JSON.stringify(body) }),
   login: (body) => request("/api/auth/login", { method: "POST", body: JSON.stringify(body) }),
+  adminLogin: (body) => request("/api/auth/admin/login", { method: "POST", body: JSON.stringify(body) }),
   guest: () => request("/api/auth/guest", { method: "POST", body: "{}" }),
   logout: () => request("/api/auth/logout", { method: "POST", body: "{}" }),
   getPlaces: () => request("/api/places"),

@@ -51,6 +51,11 @@ describe("Sidebar search", () => {
     cleanup();
   });
 
+  it("shows not found only after a successful empty search", () => {
+    renderSidebar({ hits: [], status: "done" }, { query: "nonexistent", places: [] });
+    expect(screen.getByRole("status")).toHaveTextContent("Location not found");
+  });
+
   it("sends typed text to the search query handler", async () => {
     const user = userEvent.setup();
     const { onQueryChange } = renderSidebar({ hits: [], status: "idle" }, { query: "cm" });

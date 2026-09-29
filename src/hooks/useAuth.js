@@ -40,11 +40,11 @@ export function useAuth() {
     }
   }, []);
 
-  const login = useCallback(async (body) => {
+  const login = useCallback(async (body, adminOnly = false) => {
     setBusy(true);
     setError("");
     try {
-      const data = await api.login(body);
+      const data = await (adminOnly ? api.adminLogin(body) : api.login(body));
       setUser(data.user);
       return data.user;
     } catch (err) {

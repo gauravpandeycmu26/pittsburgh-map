@@ -8,9 +8,9 @@ import { seedReviews } from "../src/data/seedReviews.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dataDir = join(root, "data");
-const dbPath = join(dataDir, "app.sqlite");
+const dbPath = process.env.DATABASE_PATH || join(dataDir, "app.sqlite");
 
-mkdirSync(dataDir, { recursive: true });
+mkdirSync(dirname(dbPath), { recursive: true });
 
 export const db = new DatabaseSync(dbPath);
 
@@ -72,6 +72,11 @@ db.exec(`
     FOREIGN KEY (place_id) REFERENCES places(id) ON DELETE CASCADE
   );
 `);
+
+// Migrate existing databases without changing existing account privileges.
+if (!db.prepare("PRAGMA table_info(users)").all().some((column) => column.name === "admin")) {
+  db.exec("ALTER TABLE users ADD COLUMN admin INTEGER NOT NULL DEFAULT 0");
+}
 
 const upsertPlace = db.prepare(`
   INSERT INTO places (
@@ -144,6 +149,7 @@ export function publicUser(row) {
     username: row.username,
     displayName: row.display_name,
     guest: Boolean(row.guest),
+    admin: Boolean(row.admin),
   };
 }
 

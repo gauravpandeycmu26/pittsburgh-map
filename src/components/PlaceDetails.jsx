@@ -13,6 +13,7 @@ function averageField(reviews, key) {
 
 export default function PlaceDetails({
   selection,
+  notFound = false,
   reviews,
   user,
   onClose,
@@ -23,6 +24,16 @@ export default function PlaceDetails({
   onDeleteReview,
 }) {
   if (!selection) return null;
+
+  if (notFound) return (
+    <section className="place-sheet" aria-label="Location not found">
+      <div className="empty-card">
+        <h2>Location not found</h2>
+        <p>This location no longer exists. Choose another place on the map.</p>
+        <button className="md-text-btn" onClick={onClose}>Close</button>
+      </div>
+    </section>
+  );
 
   const isProspect = selection.kind === "prospect";
   const place = selection.place;
@@ -95,9 +106,9 @@ export default function PlaceDetails({
                     </p>
                   ) : null}
                   <p>{review.text}</p>
-                  {user && review.userId === user.id && !review.seeded ? (
+                  {user && (review.userId === user.id || user.admin) && !review.seeded ? (
                     <button className="md-text-btn" type="button" onClick={() => onDeleteReview(review.id)}>
-                      Remove my note
+                      {review.userId === user.id ? "Remove my note" : "Remove note"}
                     </button>
                   ) : null}
                 </li>
@@ -105,7 +116,12 @@ export default function PlaceDetails({
             </ul>
           )}
           {user ? (
-            <ReviewForm user={user} onSubmit={onAddReview} />
+            <>
+              {reviews.some((review) => review.userId === user.id) && (
+                <p className="review-as">You have already reviewed this location. Add another note to share an update.</p>
+              )}
+              <ReviewForm user={user} onSubmit={onAddReview} />
+            </>
           ) : (
             <div className="empty-card">
               <span className="material-symbols-outlined">login</span>

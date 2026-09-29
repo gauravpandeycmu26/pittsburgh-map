@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { distanceMeters } from "../src/lib/geo.js";
 import bcrypt from "bcryptjs";
 import express from "express";
 import rateLimit from "express-rate-limit";
@@ -163,7 +164,7 @@ app.post("/api/auth/signup", authLimit, (req, res) => {
   return res.status(201).json({ user: publicUser(findUserById.get(id)) });
 });
 
-app.post("/api/auth/login", authLimit, (req, res) => {
+function login(req, res, adminOnly = false) {
   const username = asString(req.body?.username, 24);
   const password = typeof req.body?.password === "string" ? req.body.password : "";
   const user = findUserByName.get(username);
@@ -174,7 +175,7 @@ app.post("/api/auth/login", authLimit, (req, res) => {
   } catch {
     ok = false;
   }
-  if (!user || user.guest || !ok) {
+  if (!user || user.guest || !ok || (adminOnly && !user.admin)) {
     return res.status(401).json({ error: "Username or password is wrong." });
   }
 
@@ -182,7 +183,10 @@ app.post("/api/auth/login", authLimit, (req, res) => {
   insertSession.run(hashSession(token), user.id, Date.now() + SESSION_MS);
   setSessionCookie(res, token);
   return res.json({ user: publicUser(user) });
-});
+}
+
+app.post("/api/auth/login", authLimit, (req, res) => login(req, res));
+app.post("/api/auth/admin/login", authLimit, (req, res) => login(req, res, true));
 
 app.post("/api/auth/guest", authLimit, (req, res) => {
   const id = createId("user");
@@ -213,6 +217,13 @@ app.post("/api/places", requireUser, (req, res) => {
   const parsed = validatePlaceInput(req.body);
   if (parsed.error) return res.status(400).json({ error: parsed.error });
 
+  // A repeated submission opens the existing review thread without overwriting it.
+  const existing = listPlaces.all().find((place) =>
+    place.name.trim().toLowerCase() === parsed.value.name.toLowerCase() &&
+    distanceMeters(place, parsed.value) < 90,
+  );
+  if (existing) return res.json({ place: mapPlace(existing), existing: true });
+
   const id = createId("place");
   const now = Date.now();
   insertPlace.run({
@@ -233,6 +244,12 @@ app.post("/api/places", requireUser, (req, res) => {
     created_at: now,
   });
   return res.status(201).json({ place: mapPlace(findPlace.get(id)) });
+});
+
+app.get("/api/places/:id", (req, res) => {
+  const place = findPlace.get(req.params.id);
+  if (!place) return res.status(404).json({ error: "Place not found." });
+  return res.json({ place: mapPlace(place) });
 });
 
 app.get("/api/places/:id/reviews", (req, res) => {
@@ -268,7 +285,9 @@ app.post("/api/places/:id/reviews", requireUser, (req, res) => {
 app.delete("/api/reviews/:id", requireUser, (req, res) => {
   const review = findReview.get(req.params.id);
   if (!review) return res.status(404).json({ error: "Note not found." });
-  const result = removeReview.run(req.params.id, req.user.id);
+  const result = req.user.admin && !review.seeded
+    ? db.prepare("DELETE FROM reviews WHERE id = ?").run(req.params.id)
+    : removeReview.run(req.params.id, req.user.id);
   if (!result.changes) return res.status(403).json({ error: "You can only remove your own notes." });
   return res.json({ ok: true });
 });

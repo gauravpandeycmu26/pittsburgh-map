@@ -12,6 +12,16 @@ async function fillAccessRatings(clicker) {
 }
 
 describe("ReviewForm", () => {
+  it("keeps the draft when saving fails", async () => {
+    const clicker = userEvent.setup();
+    render(<ReviewForm user={user} onSubmit={vi.fn().mockRejectedValue(new Error("Save failed"))} />);
+    await fillAccessRatings(clicker);
+    await clicker.type(screen.getByRole("textbox"), "Keep this access note.");
+    await clicker.click(screen.getByRole("button", { name: "Post access notes" }));
+    expect(await screen.findByText("Save failed")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toHaveValue("Keep this access note.");
+  });
+
   it("requires a 1-5 rating", async () => {
     const clicker = userEvent.setup();
     const onSubmit = vi.fn();

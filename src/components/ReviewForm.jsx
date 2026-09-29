@@ -9,7 +9,9 @@ export default function ReviewForm({ user, onSubmit, submitLabel = "Post access 
   const [text, setText] = useState("");
   const [error, setError] = useState("");
 
-  function handleSubmit(event) {
+  const [busy, setBusy] = useState(false);
+
+  async function handleSubmit(event) {
     event.preventDefault();
     if (rating < 1 || walking < 1 || wheelchair < 1) {
       setError("Rate overall access, walking, and wheelchair access from 1 to 5.");
@@ -19,17 +21,25 @@ export default function ReviewForm({ user, onSubmit, submitLabel = "Post access 
       setError("Describe ramps, hills, doors, or other barriers.");
       return;
     }
-    onSubmit({
-      rating,
-      walking,
-      wheelchair,
-      text: text.trim(),
-    });
-    setRating(0);
-    setWalking(0);
-    setWheelchair(0);
-    setText("");
-    setError("");
+    if (busy) return;
+    setBusy(true);
+    try {
+      await onSubmit({
+        rating,
+        walking,
+        wheelchair,
+        text: text.trim(),
+      });
+      setRating(0);
+      setWalking(0);
+      setWheelchair(0);
+      setText("");
+      setError("");
+    } catch (error) {
+      setError(error.message || "Could not save your note. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -58,7 +68,7 @@ export default function ReviewForm({ user, onSubmit, submitLabel = "Post access 
         />
       </label>
       {error ? <p className="form-error">{error}</p> : null}
-      <button className="md-filled-btn" type="submit">
+      <button className="md-filled-btn" type="submit" disabled={busy}>
         {submitLabel}
       </button>
     </form>

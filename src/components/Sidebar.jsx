@@ -57,6 +57,10 @@ export default function Sidebar({
         {status === "error" ? <p className="search-status">City search is unavailable right now.</p> : null}
         {status === "loading" ? <p className="search-status">Searching the city…</p> : null}
 
+        {query.trim() && places.length === 0 && hits.length === 0 && status === "done" ? (
+          <p className="search-status" role="status">Location not found. Try another name or address.</p>
+        ) : null}
+
         {hits.length > 0 ? (
           <section className="results">
             <h3>City search</h3>

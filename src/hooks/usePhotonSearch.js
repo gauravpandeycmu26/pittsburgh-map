@@ -18,6 +18,8 @@ export function usePhotonSearch(query) {
       return undefined;
     }
 
+    setHits([]);
+    setStatus("loading");
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       setStatus("loading");
@@ -25,6 +27,7 @@ export function usePhotonSearch(query) {
         const response = await fetch(createPhotonSearchUrl(needle), { signal: controller.signal });
         if (!response.ok) throw new Error("search failed");
         const data = await response.json();
+        if (controller.signal.aborted) return;
         setHits(parsePhotonHits(data));
         setStatus("done");
       } catch (error) {

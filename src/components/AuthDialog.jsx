@@ -19,12 +19,13 @@ export default function AuthDialog({
   if (!open) return null;
 
   const isSignup = mode === "signup";
+  const isAdmin = mode === "admin";
 
   async function handleSubmit(event) {
     event.preventDefault();
     const user = isSignup
       ? await onSignup({ username, password, displayName })
-      : await onLogin({ username, password });
+      : await onLogin({ username, password }, isAdmin);
     if (user) {
       setUsername("");
       setDisplayName("");
@@ -37,11 +38,11 @@ export default function AuthDialog({
     <div className="dialog-root">
       <button className="dialog-scrim" type="button" aria-label="Dismiss" onClick={onClose} />
       <form className="dialog-card auth-card" onSubmit={handleSubmit}>
-        <h2>{isSignup ? "Create an account" : "Log in"}</h2>
+        <h2>{isSignup ? "Create an account" : isAdmin ? "Admin login" : "Log in"}</h2>
         <p>
           {isSignup
             ? "Save landmarks and access notes under your name."
-            : "Log in to post access notes or add a landmark."}
+            : isAdmin ? "Sign in with an administrator account to moderate community notes." : "Log in to post access notes or add a landmark."}
         </p>
         <label className="md-field">
           <span>Username</span>
@@ -85,11 +86,11 @@ export default function AuthDialog({
         <button
           className="md-text-btn auth-switch"
           type="button"
-          onClick={() => onModeChange(isSignup ? "login" : "signup")}
+          onClick={() => onModeChange(isSignup || isAdmin ? "login" : "signup")}
         >
-          {isSignup ? "Already have an account? Log in" : "Need an account? Sign up"}
+          {isAdmin ? "Back to regular login" : isSignup ? "Already have an account? Log in" : "Need an account? Sign up"}
         </button>
-        <button
+        {!isAdmin && <button
           className="md-text-btn auth-switch"
           type="button"
           disabled={busy}
@@ -104,7 +105,7 @@ export default function AuthDialog({
           }}
         >
           Continue as guest
-        </button>
+        </button>}
       </form>
     </div>
   );

@@ -12,6 +12,12 @@ const park = {
 };
 
 describe("PlaceDetails", () => {
+  it("does not offer reviews for a missing saved location", () => {
+    render(<PlaceDetails selection={{ kind: "place", place: park }} notFound reviews={[]} user={{ id: "user-1" }} />);
+    expect(screen.getByRole("heading", { name: "Location not found" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Post access notes" })).not.toBeInTheDocument();
+  });
+
   it("shows existing reviews, averages, and path types", () => {
     render(
       <PlaceDetails

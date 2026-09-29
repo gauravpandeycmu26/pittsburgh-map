@@ -1,4 +1,4 @@
-export default function AccountBar({ user, onLogin, onSignup, onGuest, onLogout }) {
+export default function AccountBar({ user, onLogin, onSignup, onGuest, onLogout, onAdminLogin }) {
   if (!user) {
     return (
       <div className="account-bar">
@@ -8,6 +8,7 @@ export default function AccountBar({ user, onLogin, onSignup, onGuest, onLogout 
         <button className="md-text-btn" type="button" onClick={onGuest}>
           Guest
         </button>
+        <button className="md-text-btn" type="button" onClick={onAdminLogin}>Admin login</button>
         <button className="md-tonal-btn" type="button" onClick={onSignup}>
           Sign up
         </button>
@@ -17,7 +18,7 @@ export default function AccountBar({ user, onLogin, onSignup, onGuest, onLogout 
 
   return (
     <div className="account-bar">
-      <span className="account-name">{user.guest ? "Guest" : user.displayName}</span>
+      <span className="account-name">{user.guest ? "Guest" : user.displayName}{user.admin ? " · Admin" : ""}</span>
       <button className="md-text-btn" type="button" onClick={onLogout}>
         Log out
       </button>

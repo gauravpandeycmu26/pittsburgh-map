@@ -23,6 +23,7 @@ export default function App() {
     () => new Set(categories.map((category) => category.id)),
   );
   const [formError, setFormError] = useState("");
+  const [missingPlaceId, setMissingPlaceId] = useState(null);
 
   const visiblePlaces = useMemo(
     () => filterPlaces(store.places, query, activeCategories),
@@ -35,8 +36,11 @@ export default function App() {
   useEffect(() => {
     if (!selectedPlaceId) return undefined;
     let alive = true;
-    store.loadReviews(selectedPlaceId).catch(() => {
-      if (alive) setFormError("Could not load access notes.");
+    setFormError("");
+    setMissingPlaceId(null);
+    store.loadReviews(selectedPlaceId).catch((error) => {
+      if (alive && error.status === 404) setMissingPlaceId(selectedPlaceId);
+      else if (alive) setFormError("Could not load access notes.");
     });
     return () => {
       alive = false;
@@ -69,6 +73,7 @@ export default function App() {
       setFormError("");
     } catch (error) {
       setFormError(error.message);
+      throw error;
     }
   }
 
@@ -142,6 +147,7 @@ export default function App() {
             user={user}
             onLogin={() => requireAuth("login")}
             onSignup={() => requireAuth("signup")}
+            onAdminLogin={() => requireAuth("admin")}
             onGuest={async () => {
               await guest();
             }}
@@ -195,7 +201,9 @@ export default function App() {
 
       {ui.selection && !ui.picking ? (
         <PlaceDetails
+          key={selectedPlaceId ?? "prospect"}
           selection={ui.selection}
+          notFound={Boolean(selectedPlaceId && missingPlaceId === selectedPlaceId)}
           reviews={selectedReviews}
           user={user}
           onClose={() => ui.setSelection(null)}
@@ -220,7 +228,7 @@ export default function App() {
 
       <AuthDialog
         open={Boolean(ui.authOpen)}
-        mode={ui.authOpen === "signup" ? "signup" : "login"}
+        mode={ui.authOpen || "login"}
         busy={busy}
         error={authError}
         onClose={() => {
