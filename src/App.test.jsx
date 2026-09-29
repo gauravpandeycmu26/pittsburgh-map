@@ -170,8 +170,11 @@ describe("App", () => {
     render(<App />);
     await placesReady();
 
+    await user.click(screen.getByRole("button", { name: "Account" }));
     await user.click(screen.getByRole("button", { name: "Guest" }));
+    await user.click(screen.getByRole("button", { name: "Account" }));
     await screen.findByRole("button", { name: "Log out" });
+    await user.click(screen.getByRole("button", { name: "Account" }));
 
     await user.click(screen.getByRole("button", { name: /PPG Place/ }));
     const sheet = await screen.findByRole("region", { name: "PPG Place" });
@@ -198,8 +201,11 @@ describe("App", () => {
     render(<App />);
     await placesReady();
 
+    await user.click(screen.getByRole("button", { name: "Account" }));
     await user.click(screen.getByRole("button", { name: "Guest" }));
+    await user.click(screen.getByRole("button", { name: "Account" }));
     await screen.findByRole("button", { name: "Log out" });
+    await user.click(screen.getByRole("button", { name: "Account" }));
 
     await user.click(screen.getByRole("button", { name: "Add a landmark" }));
     await user.type(screen.getByPlaceholderText("Landmark name"), "Test Cafe");
@@ -218,8 +224,11 @@ describe("App", () => {
     render(<App />);
     await placesReady();
 
+    await user.click(screen.getByRole("button", { name: "Account" }));
     await user.click(screen.getByRole("button", { name: "Guest" }));
+    await user.click(screen.getByRole("button", { name: "Account" }));
     await screen.findByRole("button", { name: "Log out" });
+    await user.click(screen.getByRole("button", { name: "Account" }));
 
     await user.type(screen.getByPlaceholderText("Search parks, CMU, bridges…"), "newcafe");
     await user.click(screen.getByRole("button", { name: /Brand New Cafe/ }));

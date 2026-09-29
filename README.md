@@ -24,7 +24,7 @@ Create an admin account locally using a new username. There is no default admin 
 ADMIN_USERNAME=map_admin ADMIN_PASSWORD='<your unique password>' npm run admin:create
 ```
 
-Use the **Admin login** button in the app. Ordinary signup and guest login cannot
+Open **Account** at the top right, then choose **Admin login**. Ordinary signup and guest login cannot
 grant admin privileges. Admins can remove community notes from any account;
 built-in sample reviews remain read-only. Existing usernames are never promoted
 or overwritten by the setup command.

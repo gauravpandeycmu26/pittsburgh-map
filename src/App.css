@@ -11,6 +11,7 @@
 }
 
 .map-shell {
+  container: map / inline-size;
   position: relative;
   min-width: 0;
 }
@@ -19,7 +20,8 @@
   position: absolute;
   top: 16px;
   left: 16px;
-  z-index: 500;
+  right: 16px;
+  z-index: 700;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -69,20 +71,50 @@
   font-weight: var(--md-sys-typescale-title-medium-weight);
 }
 
-.account-bar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px;
-  border-radius: var(--md-sys-shape-extra-large);
-  background: var(--md-sys-color-surface-container);
+.account-control {
+  position: relative;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.account-trigger {
   box-shadow: var(--md-sys-elevation-2);
 }
 
+.account-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 200px;
+  max-width: calc(100vw - 32px);
+  padding: 8px;
+  border-radius: var(--md-sys-shape-large);
+  background: var(--md-sys-color-surface-container);
+  box-shadow: var(--md-sys-elevation-3);
+}
+
+.account-menu > button {
+  width: 100%;
+  justify-content: flex-start;
+}
+
 .account-name {
-  padding: 0 12px;
+  margin: 0;
+  padding: 8px 12px;
+  overflow-wrap: anywhere;
   font-size: var(--md-sys-typescale-label-large-size);
   font-weight: var(--md-sys-typescale-label-large-weight);
+}
+
+.brand {
+  min-width: 0;
+}
+
+.brand h1 {
+  overflow-wrap: anywhere;
 }
 
 .api-banner {
@@ -162,5 +194,29 @@
   .add-fab {
     right: 16px;
     bottom: 148px;
+  }
+}
+
+@container map (max-width: 520px) {
+  .top-bar {
+    gap: 8px;
+  }
+
+  .brand {
+    padding: 8px 12px;
+  }
+
+  .brand-icon,
+  .brand p {
+    display: none;
+  }
+
+  .brand h1 {
+    font-size: 13px;
+  }
+
+  .account-trigger {
+    gap: 4px;
+    padding-inline: 10px;
   }
 }
