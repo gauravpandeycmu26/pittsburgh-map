@@ -19,6 +19,7 @@ import {
 
 const PORT = Number(process.env.PORT) || 5174;
 const SESSION_MS = 7 * 24 * 60 * 60 * 1000;
+const BCRYPT_ROUNDS = 12;
 const COOKIE = "pgh_session";
 const ALLOWED_ORIGINS = new Set([
   "http://localhost:5173",
@@ -32,6 +33,10 @@ const findUserById = db.prepare("SELECT * FROM users WHERE id = ?");
 const insertUser = db.prepare(
   "INSERT INTO users (id, username, display_name, password_hash, guest, created_at) VALUES (?, ?, ?, ?, ?, ?)",
 );
+const upgradeGuest = db.prepare(
+  "UPDATE users SET username = ?, display_name = ?, password_hash = ?, guest = 0 WHERE id = ? AND guest = 1",
+);
+const renameUserNotes = db.prepare("UPDATE reviews SET author = ? WHERE user_id = ? AND seeded = 0");
 const insertSession = db.prepare("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)");
 const findSession = db.prepare(
   `SELECT sessions.id AS session_id, sessions.expires_at, users.*
@@ -135,43 +140,55 @@ app.get("/api/auth/me", (req, res) => {
   res.json({ user: currentUser(req) });
 });
 
-app.post("/api/auth/signup", authLimit, (req, res) => {
-  const usernameError = validateUsername(req.body?.username);
-  const passwordError = validatePassword(req.body?.password);
-  const nameError = validateDisplayName(req.body?.displayName ?? req.body?.username);
-  if (usernameError || passwordError || nameError) {
-    return res.status(400).json({ error: usernameError || passwordError || nameError });
+app.post("/api/auth/signup", authLimit, async (req, res) => {
+  try {
+    const usernameError = validateUsername(req.body?.username);
+    const passwordError = validatePassword(req.body?.password);
+    const nameError = validateDisplayName(req.body?.displayName ?? req.body?.username);
+    if (usernameError || passwordError || nameError) {
+      return res.status(400).json({ error: usernameError || passwordError || nameError });
+    }
+
+    const username = asString(req.body.username, 24);
+    const displayName = asString(req.body.displayName ?? username, 40);
+    const existingName = findUserByName.get(username);
+    const sessionUser = currentUser(req);
+    const passwordHash = await bcrypt.hash(req.body.password, BCRYPT_ROUNDS);
+
+    // A guest who signs up keeps the same account, so their notes and landmarks stay put.
+    if (sessionUser?.guest) {
+      if (existingName && existingName.id !== sessionUser.id) {
+        return res.status(409).json({ error: "That username is taken." });
+      }
+      upgradeGuest.run(username, displayName, passwordHash, sessionUser.id);
+      renameUserNotes.run(displayName, sessionUser.id);
+      return res.status(201).json({ user: publicUser(findUserById.get(sessionUser.id)) });
+    }
+
+    if (existingName) {
+      return res.status(409).json({ error: "That username is taken." });
+    }
+
+    const id = createId("user");
+    insertUser.run(id, username, displayName, passwordHash, 0, Date.now());
+
+    const token = randomBytes(32).toString("hex");
+    insertSession.run(hashSession(token), id, Date.now() + SESSION_MS);
+    setSessionCookie(res, token);
+    return res.status(201).json({ user: publicUser(findUserById.get(id)) });
+  } catch {
+    return res.status(500).json({ error: "Could not create the account." });
   }
-
-  const username = asString(req.body.username, 24);
-  if (findUserByName.get(username)) {
-    return res.status(409).json({ error: "That username is taken." });
-  }
-
-  const id = createId("user");
-  insertUser.run(
-    id,
-    username,
-    asString(req.body.displayName ?? username, 40),
-    bcrypt.hashSync(req.body.password, 12),
-    0,
-    Date.now(),
-  );
-
-  const token = randomBytes(32).toString("hex");
-  insertSession.run(hashSession(token), id, Date.now() + SESSION_MS);
-  setSessionCookie(res, token);
-  return res.status(201).json({ user: publicUser(findUserById.get(id)) });
 });
 
-function login(req, res, adminOnly = false) {
+async function login(req, res, adminOnly = false) {
   const username = asString(req.body?.username, 24);
   const password = typeof req.body?.password === "string" ? req.body.password : "";
   const user = findUserByName.get(username);
   const dummy = "$2a$12$v.Xz0n3z0n3z0n3z0n3z0eO9o9o9o9o9o9o9o9o9o9o9o9o9o9o9e";
   let ok = false;
   try {
-    ok = bcrypt.compareSync(password, user?.password_hash || dummy);
+    ok = await bcrypt.compare(password, user?.password_hash || dummy);
   } catch {
     ok = false;
   }
@@ -185,8 +202,16 @@ function login(req, res, adminOnly = false) {
   return res.json({ user: publicUser(user) });
 }
 
-app.post("/api/auth/login", authLimit, (req, res) => login(req, res));
-app.post("/api/auth/admin/login", authLimit, (req, res) => login(req, res, true));
+app.post("/api/auth/login", authLimit, (req, res) => {
+  login(req, res).catch(() => {
+    if (!res.headersSent) res.status(500).json({ error: "Could not log in." });
+  });
+});
+app.post("/api/auth/admin/login", authLimit, (req, res) => {
+  login(req, res, true).catch(() => {
+    if (!res.headersSent) res.status(500).json({ error: "Could not log in." });
+  });
+});
 
 app.post("/api/auth/guest", authLimit, (req, res) => {
   const id = createId("user");

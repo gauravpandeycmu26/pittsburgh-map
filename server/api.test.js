@@ -41,6 +41,8 @@ test("demo locations, existing review threads, missing places, and admin permiss
     }
     const initial = await request("/places");
     assert.equal(initial.data.places.filter((place) => place.id.startsWith("mock-")).length, 3);
+    const cmu = initial.data.places.find((item) => item.id === "cmu");
+    assert.ok(cmu.aliases.includes("CMU"));
     assert.equal(initial.data.ratings["mock-cafe"].count, 1);
     const signup = await request("/auth/signup", { method: "POST", body: { username: "regular", password: "regular-password", admin: true } });
     assert.equal(signup.status, 201);
@@ -70,6 +72,41 @@ test("demo locations, existing review threads, missing places, and admin permiss
     assert.equal((await request("/auth/me", { cookie: admin.cookie })).data.user.admin, true);
     assert.equal((await request(`/reviews/${first.data.review.id}`, { method: "DELETE", cookie: admin.cookie })).status, 200);
     assert.equal((await request(`/places/${place.id}/reviews`)).data.reviews.length, 2);
+
+    const note = "Steep curb at the side door.";
+    const guestReview = await request("/places/mock-park/reviews", {
+      method: "POST",
+      cookie: guest.cookie,
+      body: { rating: 4, walking: 4, wheelchair: 3, text: note },
+    });
+    assert.equal(guestReview.status, 201);
+    const placeCount = (await request("/places")).data.places.length;
+    const signupStarted = Date.now();
+    const upgraded = await request("/auth/signup", {
+      method: "POST",
+      cookie: guest.cookie,
+      body: { username: "kept_notes", password: "kept-password", displayName: "Kept Notes" },
+    });
+    assert.ok(Date.now() - signupStarted < 5000);
+    assert.equal(upgraded.status, 201);
+    assert.equal(upgraded.data.user.id, guest.data.user.id);
+    assert.equal(upgraded.data.user.guest, false);
+    const kept = await request("/places/mock-park/reviews");
+    assert.equal(
+      kept.data.reviews.some((review) => review.text === note && review.author === "Kept Notes" && review.userId === guest.data.user.id),
+      true,
+    );
+    assert.equal((await request("/places")).data.places.length, placeCount);
+    assert.equal((await request(`/places/${place.id}/reviews`)).data.reviews.length, 2);
+    const loginStarted = Date.now();
+    const relogin = await request("/auth/login", {
+      method: "POST",
+      body: { username: "kept_notes", password: "kept-password" },
+    });
+    assert.equal(relogin.status, 200);
+    assert.equal(relogin.data.user.displayName, "Kept Notes");
+    assert.ok(Date.now() - loginStarted < 5000);
+    assert.equal((await request("/places")).data.places.length, placeCount);
   } finally {
     if (server && server.exitCode === null) {
       const exited = once(server, "exit");

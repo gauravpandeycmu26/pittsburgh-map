@@ -63,10 +63,19 @@ vi.mock("./lib/api.js", async () => {
     api: {
       me: async () => ({ user: state.user }),
       signup: async (body) => {
+        const displayName = body.displayName || body.username;
+        const id = state.user?.guest ? state.user.id : "user-1";
+        if (state.user?.guest) {
+          for (const list of Object.values(state.reviews)) {
+            for (const review of list) {
+              if (review.userId === id) review.author = displayName;
+            }
+          }
+        }
         state.user = {
-          id: "user-1",
+          id,
           username: body.username,
-          displayName: body.displayName || body.username,
+          displayName,
           guest: false,
         };
         return { user: state.user };
@@ -194,6 +203,71 @@ describe("App", () => {
       expect(within(sheet).getByText("The courtyard is a great lunch spot.")).toBeInTheDocument();
     });
     expect(within(sheet).getByText("5.0 · 1 note")).toBeInTheDocument();
+  });
+
+  it("keeps the rating, comment, and places when a guest signs up", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await placesReady();
+
+    await user.click(screen.getByRole("button", { name: "Account" }));
+    await user.click(screen.getByRole("button", { name: "Guest" }));
+    await user.click(screen.getByRole("button", { name: "Account" }));
+    await screen.findByRole("button", { name: "Log out" });
+    await user.click(screen.getByRole("button", { name: "Account" }));
+
+    await user.click(screen.getByRole("button", { name: /PPG Place/ }));
+    const sheet = await screen.findByRole("region", { name: "PPG Place" });
+    await user.click(within(sheet).getByRole("button", { name: "Overall access 5 stars" }));
+    await user.click(within(sheet).getByRole("button", { name: "Walking access 4 stars" }));
+    await user.click(within(sheet).getByRole("button", { name: "Wheelchair access 3 stars" }));
+    await user.type(
+      within(sheet).getByPlaceholderText("Ramps, curb cuts, hills, elevators, restrooms…"),
+      "Steep curb at the side door.",
+    );
+    await user.click(within(sheet).getByRole("button", { name: "Post access notes" }));
+    await waitFor(() => {
+      expect(within(sheet).getByText("Steep curb at the side door.")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Account" }));
+    await user.click(screen.getByRole("button", { name: "Sign up" }));
+    await user.type(screen.getByLabelText("Username"), "maya_r");
+    await user.type(screen.getByLabelText("Display name"), "Maya R.");
+    await user.type(screen.getByLabelText("Password"), "secret123");
+    await user.click(screen.getByRole("button", { name: "Sign up" }));
+
+    await waitFor(() => {
+      expect(within(sheet).getByText("Posting as Maya R.")).toBeInTheDocument();
+    });
+    expect(within(sheet).getByText("Steep curb at the side door.")).toBeInTheDocument();
+    expect(within(sheet).getByText("5.0 · 1 note")).toBeInTheDocument();
+    expect(within(sheet).getByText("Maya R.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "27 places" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Account" }));
+    expect(screen.getByText("Maya R.", { selector: ".account-name" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Guest" })).not.toBeInTheDocument();
+  });
+
+  it("shows the map homepage and finishes login in under 5 seconds", async () => {
+    const user = userEvent.setup();
+    const started = performance.now();
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Pittsburgh Access Map" })).toBeInTheDocument();
+    expect(screen.getByTestId("map")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Account" }));
+    await user.click(screen.getByRole("button", { name: "Log in" }));
+    await user.type(screen.getByLabelText("Username"), "maya_r");
+    await user.type(screen.getByLabelText("Password"), "secret123");
+    await user.click(screen.getByRole("button", { name: "Log in" }));
+
+    await user.click(screen.getByRole("button", { name: "Account" }));
+    expect(await screen.findByRole("button", { name: "Log out" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pittsburgh Access Map" })).toBeInTheDocument();
+    expect(screen.getByTestId("map")).toBeInTheDocument();
+    expect(performance.now() - started).toBeLessThan(5000);
   });
 
   it("adds a location after guest login", async () => {

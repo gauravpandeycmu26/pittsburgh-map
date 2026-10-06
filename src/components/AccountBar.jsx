@@ -48,9 +48,15 @@ export default function AccountBar({ user, onLogin, onSignup, onGuest, onLogout,
       </button>
       {open && (
         <div className="account-menu" id="account-options" role="group" aria-label="Account options">
-          {user ? (
+          {user?.guest ? (
             <>
-              <p className="account-name">{user.guest ? "Guest" : user.displayName}{user.admin ? " · Admin" : ""}</p>
+              <p className="account-name">Guest</p>
+              <button className="md-tonal-btn" type="button" onClick={() => choose(onSignup)}>Sign up</button>
+              <button className="md-text-btn" type="button" onClick={() => choose(onLogout)}>Log out</button>
+            </>
+          ) : user ? (
+            <>
+              <p className="account-name">{user.displayName}{user.admin ? " · Admin" : ""}</p>
               <button className="md-text-btn" type="button" onClick={() => choose(onLogout)}>Log out</button>
             </>
           ) : (

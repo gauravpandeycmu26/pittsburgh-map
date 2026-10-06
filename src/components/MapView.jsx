@@ -82,10 +82,12 @@ const PlaceMarker = memo(function PlaceMarker({ place, selected, rating, onSelec
         <h3>{place.name}</h3>
         <p className="popup-access">{accessSummary(access)}</p>
         {rating?.count ? (
-          <p className="popup-rating">
+          <div className="popup-rating">
             <StarRating value={rating.average} readOnly label={`${place.name} access rating`} />
-            {rating.average.toFixed(1)} · {rating.count} note{rating.count === 1 ? "" : "s"}
-          </p>
+            <span>
+              {rating.average.toFixed(1)} · {rating.count} note{rating.count === 1 ? "" : "s"}
+            </span>
+          </div>
         ) : (
           <p>No access notes yet</p>
         )}

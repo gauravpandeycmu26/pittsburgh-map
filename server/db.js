@@ -53,6 +53,7 @@ db.exec(`
     restroom TEXT NOT NULL,
     notes TEXT NOT NULL DEFAULT '',
     paths TEXT NOT NULL DEFAULT '[]',
+    aliases TEXT NOT NULL DEFAULT '[]',
     custom INTEGER NOT NULL DEFAULT 0,
     created_by TEXT,
     created_at INTEGER NOT NULL
@@ -77,12 +78,15 @@ db.exec(`
 if (!db.prepare("PRAGMA table_info(users)").all().some((column) => column.name === "admin")) {
   db.exec("ALTER TABLE users ADD COLUMN admin INTEGER NOT NULL DEFAULT 0");
 }
+if (!db.prepare("PRAGMA table_info(places)").all().some((column) => column.name === "aliases")) {
+  db.exec("ALTER TABLE places ADD COLUMN aliases TEXT NOT NULL DEFAULT '[]'");
+}
 
 const upsertPlace = db.prepare(`
   INSERT INTO places (
-    id, name, category, description, lat, lng, walking, wheelchair, ramps, elevators, restroom, notes, paths, custom, created_by, created_at
+    id, name, category, description, lat, lng, walking, wheelchair, ramps, elevators, restroom, notes, paths, aliases, custom, created_by, created_at
   ) VALUES (
-    @id, @name, @category, @description, @lat, @lng, @walking, @wheelchair, @ramps, @elevators, @restroom, @notes, @paths, @custom, @created_by, @created_at
+    @id, @name, @category, @description, @lat, @lng, @walking, @wheelchair, @ramps, @elevators, @restroom, @notes, @paths, @aliases, @custom, @created_by, @created_at
   )
   ON CONFLICT(id) DO UPDATE SET
     name = excluded.name,
@@ -96,7 +100,8 @@ const upsertPlace = db.prepare(`
     elevators = excluded.elevators,
     restroom = excluded.restroom,
     notes = excluded.notes,
-    paths = excluded.paths
+    paths = excluded.paths,
+    aliases = excluded.aliases
   WHERE places.custom = 0
 `);
 
@@ -121,6 +126,7 @@ for (const place of catalogPlaces) {
     restroom: access.restroom,
     notes: access.notes ?? "",
     paths: JSON.stringify(pathsFor(place)),
+    aliases: JSON.stringify(place.aliases ?? []),
     custom: 0,
     created_by: null,
     created_at: 0,
@@ -155,10 +161,17 @@ export function publicUser(row) {
 
 export function mapPlace(row) {
   let paths = [];
+  let aliases = [];
   try {
     paths = JSON.parse(row.paths || "[]");
   } catch {
     paths = [];
+  }
+  try {
+    const parsed = JSON.parse(row.aliases || "[]");
+    aliases = Array.isArray(parsed) ? parsed.filter((alias) => typeof alias === "string") : [];
+  } catch {
+    aliases = [];
   }
   return {
     id: row.id,
@@ -168,6 +181,7 @@ export function mapPlace(row) {
     lat: row.lat,
     lng: row.lng,
     custom: Boolean(row.custom),
+    aliases,
     paths,
     accessibility: {
       walking: row.walking,

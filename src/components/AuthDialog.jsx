@@ -41,7 +41,7 @@ export default function AuthDialog({
         <h2>{isSignup ? "Create an account" : isAdmin ? "Admin login" : "Log in"}</h2>
         <p>
           {isSignup
-            ? "Save landmarks and access notes under your name."
+            ? "Save landmarks and access notes under your name. Notes you already posted stay on this account."
             : isAdmin ? "Sign in with an administrator account to moderate community notes." : "Log in to post access notes or add a landmark."}
         </p>
         <label className="md-field">

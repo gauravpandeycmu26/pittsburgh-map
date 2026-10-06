@@ -45,7 +45,7 @@ export default function App() {
     return () => {
       alive = false;
     };
-  }, [selectedPlaceId, store.loadReviews]);
+  }, [selectedPlaceId, store.loadReviews, user?.id, user?.guest, user?.displayName]);
 
   function toggleCategory(id) {
     setActiveCategories((current) => toggleCategorySet(current, id));
